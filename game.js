@@ -150,6 +150,9 @@ with(jsasteroids) {
 		$('input').add('textarea').click(function() {
 			keys.focus = false
 		});
+  		 ctx.restore();
+		 jsasteroids.menu = new jsasteroids.Menu();
+		
 	}
 	jsasteroids.ResourceLoader = function() {
 		this.total = 0;
@@ -183,9 +186,57 @@ with(jsasteroids) {
 			});
 
 		}
-	}
-		$(function(){main()});
 
+		jsasteroids.Menu = function() {
+			var self = this;
+			var menuItems = [
+					['New Game', function() { self.exit(); jsasteroids.game = new Game(); }],
+					['Highscores', function() { self.exit(); new Highscores(); }],
+					['Credits', function() { self.exit(); new Credits(); }]					
+				];
+			var selected = 0;
+			ctx.save();
+			function draw() {
+				ctx.fillStyle = 'black';
+				ctx.fillRect(0, 0, width, height);
+				ctx.font = 18 + 'px Impact';
+				for(var i = 0; i < menuItems.length; i++) {
+					ctx.fillStyle = (i == selected) ? 'red': 'gold';
+					var itemText = menuItems[i][0];
+					var itemTextWidth = ctx.measureText(itemText).width;
+					ctx.fillText(itemText, (width-itemTextWidth)/2, 200+i*18*1.5);
+				}
+			}
+			this.enter = function() {
+				timer.ontick = draw;
+				timer.set_rate(10);
+				$(document).bind('keydown.menu', function(event) {
+					if(!keys.focus) return;
+					if(event.keyCode == 40) {
+						selected++;
+						selected %= menuItems.length;
+					}
+					if(event.keyCode == 38) {
+						selected--;
+						if(selected < 0) selected = menuItems.length-1;
+					}
+					if(event.keyCode == 32 || event.keyCode == 13) {
+						menuItems[selected][1]();
+					}
+				});
+			}
+			this.enter();
+			this.exit = function() {
+				$(document).unbind('keydown.menu');
+			}
+		}
+		jsasteroids.Highscores = function() { }
+		jsasteroids.Credits = function() { } 
+		jsasteroids.Game = function() {  } 
 	}
+	$(function(){main()});
+}
+
+
 
 
