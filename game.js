@@ -127,6 +127,39 @@ with(jsasteroids) {
 		});
 	}
 
+	jsasteroids.Starship = function() {
+		var self = this;
+		self.direction = [];	/** The direction (unit vector) of star ship */
+		self.angle = 0;			/** The angle (in degrees) of the ship */
+		self.acceleration = []; /** The acceleration vector */
+		self.velocity = [];		/** The velocity vector */
+		self.position = [];		/** Position of star ship */
+		self.ACCEL_CONSTANT = 1.2f; /** Some acceleration constant for thrust */
+
+		function update(dt) {
+			position[0] += dt*velocity[0];
+			position[1] += dt*velocity[1];
+		}
+
+		function incrementAngle() {
+			angle = (angle + 1) % 360;
+		}
+
+		function decrementAngle() {
+			if((angle - 1) == 0) angle = 360;
+		}
+
+		function thrust(boolean on) {
+			if(on) {
+				velocity[0] += direction[0] * ACCEL_CONSTANT;
+				velocity[1] += direction[1] * ACCEL_CONSTANT;
+			}
+			else {
+
+			}
+		}
+	}
+
 	jsasteroids.main = function(){
 		initSinCosLUT();
 		jsasteroids.html5av = document.createElement('video').load != undefined;
