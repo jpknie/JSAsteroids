@@ -49,6 +49,62 @@ function fillTextMultiline(ctx, text, x, y, h) {
 	}
 }
 
+function drawAndRotate(ctx, img, dw, dh) {
+	var colDu = sinLUT[angle];
+	var colDv = cosLUT[angle];
+	var rowDu = colDv;
+	var rowDv = -colDu;
+	var srcCx = img.width/2;
+	var srcCy = img.height/2;
+	var dstCx = dw/2;
+	var dstCy = dh/2;
+	var startingu = srcCx - (dstCx * colDv + dstCy * colDu);
+	var startingv = srcCy - (dstCx * rowDv + dstCy * rowDu);
+	var rowu = startingu;
+	var rowv = startingv;
+	var u=0;
+	var v=0;
+	for(var y=0; y < height; y++)
+	{
+		u = rowu;
+		v = rowv;
+		
+		for(var x=0; x < width; x++)
+		{
+			u += rowDu;
+			v += rowDv;
+		}
+		rowu += colDu;
+		rowv += colDv;
+	}
+}
+
+
+function drawImage(myContext, img, x, y, size, rotate) {
+            var halfS = size / 2;
+			
+           /* var imageCursor = new Image();
+            imageCursor.src = imgSrc; */
+            myContext.save();
+            var tX = x + halfS;
+            var tY = y + halfS;
+            myContext.translate(tX, tY);
+            myContext.rotate(Math.PI / 180 * rotate);
+            var dX = 0, dY = 0;
+            if (rotate == 0) { dX = 0; dY = 0; }
+            else if (rotate > 0 && rotate < 90) { dX = 0; dY = -(size / (90 / rotate)); }
+            else if (rotate == 90) { dX = 0; dY = -size; }
+            else if (rotate > 90 && rotate < 180) { dX = -(size / (90 / (rotate - 90))); dY = -size; }
+            else if (rotate == 180) { dX = dY = -size; }
+            else if (rotate > 180 && rotate < 270) { dX = -size; dY = -size + (size / (90 / (rotate - 180))); }
+            else if (rotate == 270) { dX = -size; dY = 0; }
+            else if (rotate > 270 && rotate < 360) { dX = -size + (size / (90 / (rotate - 270))); dY = 0; }
+            else if (rotate == 360) { dX = 0; dY = 0; }
+            myContext.drawImage(img, dX, dY, size, size);
+            myContext.restore();
+        }
+
+
 var sinLUT = [];
 var cosLUT = [];
 
@@ -127,45 +183,89 @@ with(jsasteroids) {
 		});
 	}
 
-	jsasteroids.Starship = function() {
+	jsasteroids.Starship = function(game, img) {
 		var self = this;
-		self.direction = [];	/** The direction (unit vector) of star ship */
-		self.angle = 0;			/** The angle (in degrees) of the ship */
-		self.acceleration = []; /** The acceleration vector */
-		self.velocity = [];		/** The velocity vector */
+		self.angle = 355;			/** The angle (in degrees) of the ship */
+		self.direction = [sinLUT[self.angle],-cosLUT[self.angle]];	/** The direction (unit vector) of star ship */
+		self.acceleration = [0.0, 0.0]; /** The acceleration vector */
+		self.velocity = [0.0,0.0];		/** The velocity vector */
 		self.position = [];		/** Position of star ship */
-		self.ACCEL_CONSTANT = 1.2f; /** Some acceleration constant for thrust */
+		self.ACCEL_CONSTANT = 4.0; /** Some acceleration constant for thrust */
+		self.img = img;
+		self.width = img.width;
+		self.height = img.height;
+		self.integer = 0;
 
-		function update(dt) {
+		self.tick = function(dt) {
+			var position = self.position;
+			var velocity = self.velocity;
+			/** Add time*vel to position */
 			position[0] += dt*velocity[0];
 			position[1] += dt*velocity[1];
 		}
 
-		function incrementAngle() {
-			angle = (angle + 1) % 360;
+		self.incrementAngle = function () {
+			var direction = self.direction;
+			self.angle = ((self.angle + 5) % 360);
+			/** update direction vector */
+			direction[0] = sinLUT[self.angle];
+			direction[1] = -cosLUT[self.angle];
 		}
 
-		function decrementAngle() {
-			if((angle - 1) == 0) angle = 360;
+		self.decint = function() {
+			self.integer--;
+			console.log("integer: "+self.integer);
+		}
+		self.incint = function() {
+			self.integer++;
+			console.log("integer: "+self.integer);
 		}
 
-		function thrust(boolean on) {
-			if(on) {
-				velocity[0] += direction[0] * ACCEL_CONSTANT;
-				velocity[1] += direction[1] * ACCEL_CONSTANT;
-			}
-			else {
-
-			}
+		self.decrementAngle = function () {
+			if((self.angle - 5) == 0) self.angle = 360;
+			else self.angle-=5;
+			var direction = self.direction;
+		
+			/** update direction vector */
+			direction[0] = sinLUT[self.angle];
+			direction[1] = -cosLUT[self.angle];
+			self.direction = direction;
 		}
-	}
 
-	jsasteroids.main = function(){
+		self.thrust = function () {
+			var velocity = self.velocity;
+			var direction = self.direction;
+			var ACCEL_CONSTANT = self.ACCEL_CONSTANT;
+			velocity[0] += direction[0] * ACCEL_CONSTANT;
+			velocity[1] += direction[1] * ACCEL_CONSTANT;
+		}
+
+		self.draw = function(ctx) {
+			var img = self.img;
+			var position = self.position;
+			drawImage(ctx, img, position[0], position[1], self.width, self.angle);
+			/*
+			var tempctx = 
+			img.rotate(self.angle * Math.PI / 180);
+			ctx.drawImage(img, 0, 0, 
+			self.width, 
+			self.height, 
+			position[0], 
+			position[1], 
+			self.width, 
+			self.height);*/
+		}
+	};
+
+	jsasteroids.main = function() {
 		initSinCosLUT();
 		jsasteroids.html5av = document.createElement('video').load != undefined;
 		jsasteroids.no_video = navigator.productSub == "20090423";
 		jsasteroids.data = new ResourceLoader();
 		data.load('img', 'player_ship', 'assets/spaceship.png');
+		data.load('img', 'background0', 'assets/background0.jpg');
+		data.player_ship.frames=1;
+		data.background0.layer_num=0;
 		if(html5av) {
 			//data.load('audio', 'explosion_sound', 'assets/explosion.ogg');
 		}
@@ -263,9 +363,52 @@ with(jsasteroids) {
 				$(document).unbind('keydown.menu');
 			}
 		}
+		jsasteroids.ParallaxScroller = function (game, img) 
+		{
+			var self = this;
+			self.img = img;
+			self.draw = function(ctx) {
+				ctx.drawImage(img, 0, 0);
+			}
+		}
 		jsasteroids.Highscores = function() { }
 		jsasteroids.Credits = function() { } 
-		jsasteroids.Game = function() {  } 
+		jsasteroids.Game = function() 
+		{
+			var self = this;
+			console.log("initializing new game...");
+			jsasteroids.keys.reset();
+			self.player = new Starship(this, jsasteroids.data.player_ship);
+			self.background = new ParallaxScroller(this, jsasteroids.data.background0);
+			self.player.position[0] = jsasteroids.width/2;
+			self.player.position[1] = jsasteroids.height/2;
+			self.t = 0;
+			ctx.save();
+
+			function draw() {
+				self.background.draw(ctx);
+				self.player.draw(ctx);
+			}
+
+			timer.ontick = function(td) {
+				if(self.paused) return;
+				self.t += td;
+				var player = self.player;
+				if(keys.LEFT) {
+					player.decrementAngle();
+				}
+				if(keys.RIGHT) {
+					player.incrementAngle();
+				}
+				if(keys.UP) {
+					player.thrust();
+
+				}
+					self.player.tick(td);
+				draw();
+			}
+		}
+
 	}
 	$(function(){main()});
 }
